@@ -93,7 +93,6 @@ end
 
 function Caretaker:Destroy()
     self:Cleanup()
-    self = nil
 end
 
 return Caretaker
