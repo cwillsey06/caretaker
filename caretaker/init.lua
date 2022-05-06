@@ -50,22 +50,22 @@ function Caretaker:AttachToInstance(instance: Instance)
     self._attached_instance_connection_id = self:Add(_c)
 end
 
-function Caretaker:DetachFromInstance(instance: Instance)
+function Caretaker:DetachFromInstance()
     self:Clean(self._attached_instance_connection_id)
     self._attached_instance_connection_id = nil
     self.Instance = nil
 end
 
-function Caretaker:Add(thing: any, cleanupMethod: string?)
-    local index = getindex(thing) or new_guid()
+function Caretaker:Add(object: any, cleanupMethod: string?)
+    local index = getindex(object) or new_guid()
     self._OBJECT_INDEX[index] = {
-        Object = thing;
+        Object = object;
         cleanupMethod = cleanupMethod
-            or (typeof(thing) == "RBXScriptConnection") and "Disconnect"
+            or (typeof(object) == "RBXScriptConnection") and "Disconnect"
             or "Destroy"
     }
 
-    return thing, index
+    return object, index
 end
 
 function Caretaker:Remove(thing: Instance | string)
@@ -75,13 +75,13 @@ function Caretaker:Remove(thing: Instance | string)
     end
 end
 
-function Caretaker:Clean(thing: Instance | string)
-    local index = getindex(thing) or thing
+function Caretaker:Clean(object: Instance | string)
+    local index = getindex(object) or object
     if self._OBJECT_INDEX[index] then
         local obj = self._OBJECT_INDEX[index]
         obj.Object[obj.cleanupMethod](obj.Object)
 
-        self:Remove(thing)
+        self:Remove(object)
     end
 end
 
