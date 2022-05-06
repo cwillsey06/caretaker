@@ -2,25 +2,6 @@
 -- Coltrane Willsey
 -- 2022-03-24 [18:22]
 
---[[
-
-    Caretaker.new(): Caretaker
-
-    class Caretaker:
-        Caretaker:Extend(): Caretaker
-
-        Caretaker:AttachToInstance(instance: Instance)
-        Caretaker:DetachFromInstance()
-
-        Caretaker:Add(thing: any): any, string
-        Caretaker:Remove(thing: any)
-        Caretaker:Clean(thing: any)
-
-        Caretaker:Cleanup()
-        Caretaker:Destroy()
-
---]]
-
 function getindex(x) return typeof(x) == "Instance" and x.Name or nil end
 function new_guid()
     return game:GetService("HttpService"):GenerateGUID(false)
@@ -30,6 +11,15 @@ local Caretaker = {}
 Caretaker.__index = Caretaker
 Caretaker.ClassName = "Caretaker"
 
+--[=[
+    Creates a new Caretaker class
+
+    ```lua
+    local caretaker = Caretaker.new()
+    ```
+
+    @return Caretaker
+--]=]
 function Caretaker.new()
     local self = setmetatable({}, Caretaker)
     self._OBJECT_INDEX = {}
@@ -37,11 +27,44 @@ function Caretaker.new()
     return self
 end
 
+--[=[
+    Extends an already existing Caretaker
+
+    ```lua
+    local ct0 = Caretaker.new()
+    local ct1 = ct0:Extend()
+    local ct1_0 = ct1:Extend()
+    local ct2 = ct0:Extend()
+
+    --[[
+    [Constructor]
+        ⮑ ct0
+            ⮑ ct1
+                ⮑ ct1_0
+            ⮑ ct2
+    --]]
+    ```
+
+    @return Caretaker
+--]=]
 function Caretaker:Extend()
     local _ct = Caretaker.new()
     return self:Add(_ct, "Cleanup")
 end
 
+--[=[
+    Binds Caretaker:Cleanup() to Instance.Destroying
+
+    ```lua
+    local caretaker = Caretaker.new()
+    caretaker:AttachToInstance(instance)
+
+    instance:Destroy()
+    -- ⮑ executes caretaker:Cleanup()
+    ```
+    
+    @param instance Instance
+--]=]
 function Caretaker:AttachToInstance(instance: Instance)
     self.Instance = instance
     local _c = self.Instance.Destroying:Connect(function()
@@ -50,12 +73,36 @@ function Caretaker:AttachToInstance(instance: Instance)
     self._attached_instance_connection_id = self:Add(_c)
 end
 
+--[=[
+    Unassigns a Caretaker from an Instance
+
+    ```lua
+    caretaker:DetachFromInstance()
+
+    instance:Destroy()
+    -- ⮑ will not execute caretaker:Cleanup()
+    ```
+--]=]
 function Caretaker:DetachFromInstance()
     self:Clean(self._attached_instance_connection_id)
     self._attached_instance_connection_id = nil
     self.Instance = nil
 end
 
+--[=[
+    Adds an object to the Caretaker's cleanup stack
+
+    ```lua
+    local caretaker = Caretaker.new()
+    caretaker:Add(instance.Changed:Connect(...))
+    -- ⮑ adds a connection to the Caretaker's cleanup stack
+    ```
+
+    @param object any
+    @param cleanupMethod string?
+
+    @return any & number
+--]=]
 function Caretaker:Add(object: any, cleanupMethod: string?)
     local index = getindex(object) or new_guid()
     self._OBJECT_INDEX[index] = {
@@ -68,13 +115,34 @@ function Caretaker:Add(object: any, cleanupMethod: string?)
     return object, index
 end
 
-function Caretaker:Remove(thing: Instance | string)
-    local index = getindex(thing) or thing
+--[=[
+    Removes an object from the Caretaker's cleanup stack
+
+    ```lua
+    caretaker:Remove(instance)
+    caretaker:Cleanup()
+    -- ⮑ instance remains
+    ```
+
+    @param object Instance | string
+--]=]
+function Caretaker:Remove(object: Instance | string)
+    local index = getindex(object) or object
     if self._OBJECT_INDEX[index] then
         self._OBJECT_INDEX[index] = nil
     end
 end
 
+--[=[
+    Cleanus up a specific object from the Caretaker's cleanup stack
+
+    ```lua
+    caretaker:Clean(instance)
+    -- ⮑ cleans up this instance, but nothing else
+    ```
+
+    @param object Instance | string
+--]=]
 function Caretaker:Clean(object: Instance | string)
     local index = getindex(object) or object
     if self._OBJECT_INDEX[index] then
@@ -85,12 +153,27 @@ function Caretaker:Clean(object: Instance | string)
     end
 end
 
+--[=[
+    Cleans up the entire cleanup stack for this Caretaker
+
+    ```lua
+    caretaker:Cleanup()
+    ```
+--]=]
 function Caretaker:Cleanup()
     for k, _ in pairs(self._OBJECT_INDEX) do
         self:Clean(k)
     end
 end
 
+--[=[
+    (alias of Caretaker:Cleanup())
+    Cleans up the entire cleanup stack for this Caretaker
+
+    ```lua
+    caretaker:Destroy()
+    ```
+--]=]
 function Caretaker:Destroy()
     self:Cleanup()
 end
